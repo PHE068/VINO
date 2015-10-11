@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Login/Login.iml" filepath="$PROJECT_DIR$/Login/Login.iml" />
       <module fileurl="file://$PROJECT_DIR$/UpPlatformSdk/UpPlatformSdk.iml" filepath="$PROJECT_DIR$/UpPlatformSdk/UpPlatformSdk.iml" />
       <module fileurl="file://$PROJECT_DIR$/Vino.iml" filepath="$PROJECT_DIR$/Vino.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />

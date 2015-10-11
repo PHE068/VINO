@@ -1,7 +1,11 @@
 package us.vinotech.vino;
 
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -10,7 +14,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+//        setContentView(R.layout.activity_main);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+
+        Log.e("test_pre", preferences.getString("email", "null"));
+        Log.e("test_fb", preferences.getString("id", "null"));
+
+        Intent signin=new Intent(MainActivity.this,us.vinotech.Login.signin.class);
+        startActivity(signin);
+        finish();
     }
 
     @Override

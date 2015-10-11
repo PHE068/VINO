@@ -1,9 +1,10 @@
-package us.vinotech.vino;
+package us.vinotech.Login;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -21,18 +22,25 @@ import com.jawbone.upplatformsdk.oauth.OauthUtils;
 import com.jawbone.upplatformsdk.oauth.OauthWebViewActivity;
 import com.jawbone.upplatformsdk.utils.UpPlatformSdkConstants;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.net.URL;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -57,17 +65,34 @@ public class Jawbone extends Activity{
     private SharedPreferences.Editor editor;
     String Access_Token;
     // jason data
-    String jawbone_data_url = "https://vinotech.us/v1/post/data/";
+    String jawbone_data_url = "https://vinotech.us/v1/update/profile";
     Object Jawbone_Json_Data;
     SSLContext SSL_context;
     byte[] outputBytes;
+    private Resources resources;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //Decide login or not before.
         preferences = PreferenceManager.getDefaultSharedPreferences(Jawbone.this);
-        Access_Token= preferences.getString(UpPlatformSdkConstants.UP_PLATFORM_ACCESS_TOKEN, null);
+        Access_Token = preferences.getString(UpPlatformSdkConstants.UP_PLATFORM_ACCESS_TOKEN, null);
+
+        //For https
+        resources = this.getResources();
+        try {
+            Certification();
+        } catch (IOException e) {
+            Log.e("Certification", e.toString());
+        }
+
+        getWindow().requestFeature(Window.FEATURE_NO_TITLE);
+        // Set required levels of permissions here, for demonstration purpose
+        // we are requesting all permissions
+        authScope = new ArrayList<UpPlatformSdkConstants.UpPlatformAuthScope>();
+        authScope.add(UpPlatformSdkConstants.UpPlatformAuthScope.ALL);
+
         if(Access_Token==null) {
             Intent intent = getIntentForWebView();
             startActivityForResult(intent, UpPlatformSdkConstants.JAWBONE_AUTHORIZE_REQUEST_CODE);
@@ -77,14 +102,6 @@ public class Jawbone extends Activity{
             Jawbone_data();
         }
 
-        getWindow().requestFeature(Window.FEATURE_NO_TITLE);
-        // Set required levels of permissions here, for demonstration purpose
-        // we are requesting all permissions
-        authScope = new ArrayList<UpPlatformSdkConstants.UpPlatformAuthScope>();
-        authScope.add(UpPlatformSdkConstants.UpPlatformAuthScope.ALL);
-
-        Intent intent = getIntentForWebView();
-        startActivityForResult(intent, UpPlatformSdkConstants.JAWBONE_AUTHORIZE_REQUEST_CODE);
 
 
     }
@@ -143,8 +160,9 @@ public class Jawbone extends Activity{
     private static HashMap<String, Integer> getMoveEventsListRequestParams() {
         HashMap<String, Integer> queryHashMap = new HashMap<String, Integer>();
 
+        // TODO: 15/10/10 get today date!
         //uncomment to add as needed parameters
-//        queryHashMap.put("date", "<insert-date>");
+          queryHashMap.put("date", 20150922);
 //        queryHashMap.put("page_token", "<insert-page-token>");
 //        queryHashMap.put("start_time", "<insert-time>");
 //        queryHashMap.put("end_time", "<insert-time>");
@@ -167,17 +185,60 @@ public class Jawbone extends Activity{
     private Callback genericCallbackListener = new Callback<Object>() {
         @Override
         public void success(Object o, Response response) {
+            JSONObject JSON_DataToServer = new JSONObject();
+
+
             Log.e(TAG, "api call successful, json output: " + o.toString());
             Toast.makeText(getApplicationContext(), o.toString(), Toast.LENGTH_LONG).show();
-
             Gson gson=new Gson();
-            gson.toJson(Jawbone_Json_Data);
 
-            Log.d("JSON", gson.toJson(Jawbone_Json_Data));
 
-            // TODO: 15/9/8 put Data to Unity
             Jawbone_Json_Data=o;
-            Jawbone_Post_Data();
+            Log.d("JSON", gson.toJson(Jawbone_Json_Data));
+            try {
+                JSONObject jawbone_Json = new JSONObject(gson.toJson(Jawbone_Json_Data));
+                JSONObject items = jawbone_Json.getJSONObject("data").getJSONArray("items").getJSONObject(0);
+                JSONObject details = items.getJSONObject("details");
+//                Log.e("Jawbone date",items.toString());
+
+                int date = items.getInt("date");
+                int steps = details.getInt("steps");
+                double calories = details.getDouble("calories");
+                int distance = details.getInt("distance");
+
+                Log.e("Jawbone date",Integer.toString(date));
+                Log.e("Jawbone steps", Integer.toString(steps));
+                Log.e("calories",Double.toString(calories));
+                Log.e("distance", Integer.toString(distance));
+
+                // TODO: 15/10/10 put date and steps to URL
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(Jawbone.this);
+
+                //if: fb login send fb_id and email else: send email
+                if(preferences.getString("email",null)!=null) {
+                    JSON_DataToServer.put("steps", steps);
+                    JSON_DataToServer.put("calories", calories);
+                    JSON_DataToServer.put("distance", distance);
+                    JSON_DataToServer.put("email", preferences.getString("email", null));
+
+                    if (preferences.getString("fb_id", null) != null) {
+                        JSON_DataToServer.put("fb_id", preferences.getString("fb_id", null));
+//                    jawbone_data_url = jawbone_data_url + preferences.getString("email", null) + "/" + Integer.toString(steps)+"/"+preferences.getString("fb_id",null);
+                    }
+
+//                    jawbone_data_url = jawbone_data_url + preferences.getString("email", null) + "/" + Integer.toString(steps);
+                    outputBytes = JSON_DataToServer.toString().getBytes("UTF-8");
+                    Jawbone_Post_Data();
+
+
+                }else {
+                    Log.e("Json data callback","email null");
+                }
+             }
+             catch (org.json.JSONException | java.io.UnsupportedEncodingException e){
+                 Log.e("jawbone_Json",e.toString());
+             }
+
 
         }
 
@@ -201,8 +262,9 @@ public class Jawbone extends Activity{
         if (networkInfo != null && networkInfo.isConnected()) {
 
             try {
-                new DownloadWebpageTask().execute( jawbone_data_url);
 
+
+                new DownloadWebpageTask().execute( jawbone_data_url);
             }
             catch (Exception e){
                 Log.e("Login",e.toString());
@@ -272,13 +334,12 @@ public class Jawbone extends Activity{
 
         conn.setReadTimeout(10000 /* milliseconds */);
         conn.setConnectTimeout(15000 /* milliseconds */);
-        conn.setRequestMethod("POST");
+        conn.setRequestMethod("PUT");
         conn.setDoInput(true);
 
         conn.setRequestProperty("Content-Type", "application/json;charset=utf-8");
-
-
         conn.setDoOutput(true); //Mean it need body so is post
+
         conn.setFixedLengthStreamingMode(outputBytes.length);
         conn.setSSLSocketFactory(SSL_context.getSocketFactory());
         // Starts the query
@@ -310,6 +371,58 @@ public class Jawbone extends Activity{
         char[] buffer = new char[len];
         reader.read(buffer);
         return new String(buffer);
+    }
+
+    private void Certification() throws IOException {
+//        JSONObject JSON_Data = new JSONObject();
+//        try {
+//            JSON_Data.put("age", 11);
+//            JSON_Data.put("user_name", "jim");
+//            Log.d("JSON", JSON_Data.toString());
+//            outputBytes = JSON_Data.toString().getBytes("UTF-8");  //"{\"age\": 7.5}" work and JsonObject.toString work,too.
+//
+//        } catch (org.json.JSONException ex) {
+//            Log.e("JSON_test", ex.toString());
+//        }
+
+
+        CertificateFactory cf;
+        // Load CAs from an InputStream
+        // (could be from a resource or ByteArrayInputStream or ...)
+        try {
+            cf = CertificateFactory.getInstance("X.509");
+            // From https://www.washington.edu/itconnect/security/ca/load-der.crt
+//            InputStream caInput = new BufferedInputStream(new FileInputStream("load-der.crt"));
+            InputStream caInput = resources.openRawResource(R.raw.vinotech_us);
+
+
+            Certificate ca;
+            ca = cf.generateCertificate(caInput);
+            System.out.println("ca=" + ((X509Certificate) ca).getSubjectDN());
+
+
+            caInput.close();
+
+            // Create a KeyStore containing our trusted CAs
+            String keyStoreType = KeyStore.getDefaultType();
+            KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+            keyStore.load(null, null);
+            keyStore.setCertificateEntry("ca", ca);
+
+            // Create a TrustManager that trusts the CAs in our KeyStore
+            String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+            tmf.init(keyStore);
+
+            // Create an SSLContext that uses our TrustManager
+            SSL_context = SSLContext.getInstance("TLS");
+            SSL_context.init(null, tmf.getTrustManagers(), null);
+
+
+        } catch (java.security.cert.CertificateException | java.security.KeyStoreException | java.security.NoSuchAlgorithmException |
+                java.security.KeyManagementException exception) {
+            Log.e("CertificateFactory", exception.toString());
+        }
     }
 
 

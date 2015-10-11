@@ -1,1 +1,1 @@
-include ':app', ':UpPlatformSdk', ':facebook'
+include ':app', ':UpPlatformSdk', ':facebook', 'Login'
