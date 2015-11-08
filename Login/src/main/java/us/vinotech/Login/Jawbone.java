@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -25,22 +24,10 @@ import com.jawbone.upplatformsdk.utils.UpPlatformSdkConstants;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.net.URL;
-import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -65,27 +52,19 @@ public class Jawbone extends Activity{
     private SharedPreferences.Editor editor;
     String Access_Token;
     // jason data
-    String jawbone_data_url = "https://vinotech.us/v1/update/profile";
     Object Jawbone_Json_Data;
-    SSLContext SSL_context;
     byte[] outputBytes;
-    private Resources resources;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+
         //Decide login or not before.
         preferences = PreferenceManager.getDefaultSharedPreferences(Jawbone.this);
         Access_Token = preferences.getString(UpPlatformSdkConstants.UP_PLATFORM_ACCESS_TOKEN, null);
 
-        //For https
-        resources = this.getResources();
-        try {
-            Certification();
-        } catch (IOException e) {
-            Log.e("Certification", e.toString());
-        }
 
         getWindow().requestFeature(Window.FEATURE_NO_TITLE);
         // Set required levels of permissions here, for demonstration purpose
@@ -160,9 +139,13 @@ public class Jawbone extends Activity{
     private static HashMap<String, Integer> getMoveEventsListRequestParams() {
         HashMap<String, Integer> queryHashMap = new HashMap<String, Integer>();
 
-        // TODO: 15/10/10 get today date!
+        //Get today date to query!
+        SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyyMMdd");
+        String date = sDateFormat.format(new java.util.Date());
+        Log.e("date",date);
+
         //uncomment to add as needed parameters
-          queryHashMap.put("date", 20150922);
+          queryHashMap.put("date", Integer.parseInt(date));
 //        queryHashMap.put("page_token", "<insert-page-token>");
 //        queryHashMap.put("start_time", "<insert-time>");
 //        queryHashMap.put("end_time", "<insert-time>");
@@ -211,13 +194,13 @@ public class Jawbone extends Activity{
                 Log.e("calories",Double.toString(calories));
                 Log.e("distance", Integer.toString(distance));
 
-                // TODO: 15/10/10 put date and steps to URL
                 SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(Jawbone.this);
 
                 //if: fb login send fb_id and email else: send email
                 if(preferences.getString("email",null)!=null) {
                     JSON_DataToServer.put("steps", steps);
                     JSON_DataToServer.put("calories", calories);
+                    JSON_DataToServer.put("date", date);
                     JSON_DataToServer.put("distance", distance);
                     JSON_DataToServer.put("email", preferences.getString("email", null));
 
@@ -262,9 +245,7 @@ public class Jawbone extends Activity{
         if (networkInfo != null && networkInfo.isConnected()) {
 
             try {
-
-
-                new DownloadWebpageTask().execute( jawbone_data_url);
+                new DownloadWebpageTask().execute();
             }
             catch (Exception e){
                 Log.e("Login",e.toString());
@@ -284,7 +265,9 @@ public class Jawbone extends Activity{
 
             // params comes from the execute() call: params[0] is the url.
             try {
-                return PostUrl(urls[0]);
+                Url_Singleton url_singleton= Url_Singleton.getUrl_singleton();
+
+                return url_singleton.UpdateTodaySteps(outputBytes);
             } catch (IOException e) {
                 Log.e("doInBackground",e.toString());
                 return "Unable to retrieve web page. URL may be invalid.";
@@ -295,135 +278,12 @@ public class Jawbone extends Activity{
         @Override
         protected void onPostExecute(String result) {
             Log.e("Result", result);
-            // TODO: 15/9/8 finish data to Server!
-//                        Toast.makeText(getApplicationContext(),result, Toast.LENGTH_LONG).show();
 
-//            try {
-//                JSONObject obj = new JSONObject(result);
-//                Log.e("Jsonobj",obj.toString());
-//
-//
-//                for(int i=0;i<10;i++){
-//                    String date = new JSONObject(obj.getString(Integer.toString(i))).getString("date");
-//                    jason_date[i]=date;
-//                    String step = new JSONObject(obj.getString(Integer.toString(i))).getString("step");
-//                    jason_step_daily[i]=step;
-//                }
-//
-//
-//            }
-//            catch (JSONException e){
-//                Log.e("Json","Error");
-//            }
         }
 
     }
-    // Given a URL, establishes an HttpUrlConnection and retrieves
-// the web page content as a InputStream, which it returns as
-// a string.
-    private String PostUrl(String myurl) throws IOException {
-        InputStream is = null;
-        OutputStream os = null;
-        // Only display the first 500 characters of the retrieved
-        // web page content.
-        int len = 500;
-        // Finish: 15/9/5 research about https!
-        URL url = new URL(myurl);
-        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 
 
-        conn.setReadTimeout(10000 /* milliseconds */);
-        conn.setConnectTimeout(15000 /* milliseconds */);
-        conn.setRequestMethod("PUT");
-        conn.setDoInput(true);
-
-        conn.setRequestProperty("Content-Type", "application/json;charset=utf-8");
-        conn.setDoOutput(true); //Mean it need body so is post
-
-        conn.setFixedLengthStreamingMode(outputBytes.length);
-        conn.setSSLSocketFactory(SSL_context.getSocketFactory());
-        // Starts the query
-        os = conn.getOutputStream();
-        os.write(outputBytes);
-
-        is = conn.getInputStream();
-        //copyInputStreamToOutputStream(is, System.out);
-
-        conn.connect();
-        int response = conn.getResponseCode();
-        Log.d("HttpResponse", "The response is: " + response);
-
-        // Convert the InputStream into a string
-        String contentAsString = readIt(is, len);
-
-        // Makes sure that the InputStream is closed after the app is
-        // finished using it.
-        is.close();
-        os.close();
-        conn.disconnect();
-        return contentAsString;
-
-    }
-    // Reads an InputStream and converts it to a String.
-    public String readIt(InputStream stream, int len) throws IOException {
-        Reader reader = null;
-        reader = new InputStreamReader(stream, "UTF-8");
-        char[] buffer = new char[len];
-        reader.read(buffer);
-        return new String(buffer);
-    }
-
-    private void Certification() throws IOException {
-//        JSONObject JSON_Data = new JSONObject();
-//        try {
-//            JSON_Data.put("age", 11);
-//            JSON_Data.put("user_name", "jim");
-//            Log.d("JSON", JSON_Data.toString());
-//            outputBytes = JSON_Data.toString().getBytes("UTF-8");  //"{\"age\": 7.5}" work and JsonObject.toString work,too.
-//
-//        } catch (org.json.JSONException ex) {
-//            Log.e("JSON_test", ex.toString());
-//        }
-
-
-        CertificateFactory cf;
-        // Load CAs from an InputStream
-        // (could be from a resource or ByteArrayInputStream or ...)
-        try {
-            cf = CertificateFactory.getInstance("X.509");
-            // From https://www.washington.edu/itconnect/security/ca/load-der.crt
-//            InputStream caInput = new BufferedInputStream(new FileInputStream("load-der.crt"));
-            InputStream caInput = resources.openRawResource(R.raw.vinotech_us);
-
-
-            Certificate ca;
-            ca = cf.generateCertificate(caInput);
-            System.out.println("ca=" + ((X509Certificate) ca).getSubjectDN());
-
-
-            caInput.close();
-
-            // Create a KeyStore containing our trusted CAs
-            String keyStoreType = KeyStore.getDefaultType();
-            KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-            keyStore.load(null, null);
-            keyStore.setCertificateEntry("ca", ca);
-
-            // Create a TrustManager that trusts the CAs in our KeyStore
-            String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
-            tmf.init(keyStore);
-
-            // Create an SSLContext that uses our TrustManager
-            SSL_context = SSLContext.getInstance("TLS");
-            SSL_context.init(null, tmf.getTrustManagers(), null);
-
-
-        } catch (java.security.cert.CertificateException | java.security.KeyStoreException | java.security.NoSuchAlgorithmException |
-                java.security.KeyManagementException exception) {
-            Log.e("CertificateFactory", exception.toString());
-        }
-    }
 
 
 

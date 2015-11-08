@@ -16,6 +16,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.activity_main);
 
+
+
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
 
         Log.e("test_pre", preferences.getString("email", "null"));
@@ -25,6 +27,9 @@ public class MainActivity extends AppCompatActivity {
         startActivity(signin);
         finish();
     }
+
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

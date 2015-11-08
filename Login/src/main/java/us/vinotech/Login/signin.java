@@ -6,17 +6,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.Signature;
-import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -42,22 +37,7 @@ import com.google.android.gms.plus.model.people.Person;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.net.URL;
-import java.security.KeyStore;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 
 public class signin extends Activity implements
         GoogleApiClient.ConnectionCallbacks,
@@ -84,27 +64,17 @@ public class signin extends Activity implements
 
     CallbackManager callbackManager;
     LoginButton loginButton;
-    String signin_URL = "https://vinotech.us/v1/post/enroll/users";
-
-    SSLContext SSL_context;
-    byte[] outputBytes;
-    private Resources resources;
 
     String email=null,FB_id=null;
+    byte[] outputBytes;
+    protected static Context mContext;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //For https
-        resources = this.getResources();
-        try {
-            Certification();
-        } catch (IOException e) {
-            Log.e("Certification", e.toString());
-        }
-
+        mContext=this;
 
         FacebookSdk.sdkInitialize(this.getApplicationContext());
         setContentView(R.layout.activity_signin);
@@ -144,15 +114,9 @@ public class signin extends Activity implements
                                         editor.putString("fb_id", FB_id);
                                         editor.apply();
 
-                                        // TODO: 15/10/11  if 原本有devices資料 就直接跳Jawbonedata else: 選devices
                                         Signin_Post_Data();
                                         
-                                        // TODO: 15/9/12 change to postexecute save email and go next step
-                                        //if(preferences.getString("email",null)==null) {
 
-//                                        Intent chioce=new Intent(signin.this,choice.class);
-//                                        startActivity(chioce);
-                                        //}
                                     }
                                 });
                         Bundle parameters = new Bundle();
@@ -221,21 +185,21 @@ public class signin extends Activity implements
 
 
         // Generate this app hashkey!
-        try {
-            PackageInfo info = getPackageManager().getPackageInfo(
-                    "us.vinotech.vino",
-                    PackageManager.GET_SIGNATURES);
-            for (Signature signature : info.signatures) {
-                MessageDigest md = MessageDigest.getInstance("SHA");
-                md.update(signature.toByteArray());
-                Log.d("KeyHash:", Base64.encodeToString(md.digest(), Base64.DEFAULT));
-            }
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e("Packamanager",e.toString());
-        } catch (NoSuchAlgorithmException e) {
-            Log.e("Packamanager",e.toString());
-
-        }
+//        try {
+//            PackageInfo info = getPackageManager().getPackageInfo(
+//                    "us.vinotech.vino",
+//                    PackageManager.GET_SIGNATURES);
+//            for (Signature signature : info.signatures) {
+//                MessageDigest md = MessageDigest.getInstance("SHA");
+//                md.update(signature.toByteArray());
+//                Log.d("KeyHash:", Base64.encodeToString(md.digest(), Base64.DEFAULT));
+//            }
+//        } catch (PackageManager.NameNotFoundException e) {
+//            Log.e("Packamanager",e.toString());
+//        } catch (NoSuchAlgorithmException e) {
+//            Log.e("Packamanager",e.toString());
+//
+//        }
         //end hashkey
 
 
@@ -332,25 +296,22 @@ public class signin extends Activity implements
 
         }
         Toast.makeText(signin.this, email, Toast.LENGTH_LONG).show();
-        // TODO: 15/9/12 change to postexecute save email and go next step
 
+
+        //Save email
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(signin.this);
         SharedPreferences.Editor editor=preferences.edit();
 
         Log.e("test_pre", preferences.getString("email", "null"));
 
-        // TODO: 15/10/11  if 原本有devices資料 就直接跳Jawbonedata else: 選devices
-        Signin_Post_Data();
+        //Signin_Post_Data();
 
-//        if(preferences.getString("Gmail",null)==null) {
+        if(preferences.getString("Gmail",null)==null) {
             editor.putString("email", email);
             editor.apply();
-//        }
-//        Intent chioce=new Intent(signin.this,choice.class);
-//        startActivity(chioce);
+        }
 
-        // Show the signed-in UI
-//        updateUI(true);
+
     }
 
     @Override
@@ -413,10 +374,13 @@ public class signin extends Activity implements
             Toast.makeText(this, errorString, Toast.LENGTH_SHORT).show();
 
             mShouldResolve = false;
-//            updateUI(false);
         }
     }
 
+    //Url_Singleton
+    public static Context getContext(){
+        return mContext;
+    }
 
     public void Signin_Post_Data(){
         ConnectivityManager connMgr = (ConnectivityManager)
@@ -425,7 +389,7 @@ public class signin extends Activity implements
         if (networkInfo != null && networkInfo.isConnected()) {
 
             try {
-                new DownloadWebpageTask().execute(signin_URL);
+                new DownloadWebpageTask().execute();
             }
             catch (Exception e){
                 Log.e("Login",e.toString());
@@ -445,7 +409,20 @@ public class signin extends Activity implements
 
             // params comes from the execute() call: params[0] is the url.
             try {
-                return PostUrl(urls[0]);
+                JSONObject JSON_DataToServer = new JSONObject();
+                try {
+                    JSON_DataToServer.put("email", email);
+                    if(FB_id!=null){
+                        JSON_DataToServer.put("FB_id",FB_id);
+                    }
+                    outputBytes = JSON_DataToServer.toString().getBytes("UTF-8");
+                }catch (org.json.JSONException  e) {
+                    Log.e("PostUrl",e.toString());
+                }
+
+                Url_Singleton url_singleton= Url_Singleton.getUrl_singleton();
+
+                return url_singleton.PostUrl(outputBytes);
             } catch (IOException e) {
                 Log.e("doInBackground",e.toString());
                 return "Unable to retrieve web page. URL may be invalid.";
@@ -456,146 +433,13 @@ public class signin extends Activity implements
         @Override
         protected void onPostExecute(String result) {
             Log.e("Result", result);
-            // TODO: 15/9/8 finish data to Server!
-//                        Toast.makeText(getApplicationContext(),result, Toast.LENGTH_LONG).show();
-
-//            try {
-//                JSONObject obj = new JSONObject(result);
-//                Log.e("Jsonobj",obj.toString());
-//
-//
-//                for(int i=0;i<10;i++){
-//                    String date = new JSONObject(obj.getString(Integer.toString(i))).getString("date");
-//                    jason_date[i]=date;
-//                    String step = new JSONObject(obj.getString(Integer.toString(i))).getString("step");
-//                    jason_step_daily[i]=step;
-//                }
-//
-//
-//            }
-//            catch (JSONException e){
-//                Log.e("Json","Error");
-//            }
+            Intent UnityBridge = new Intent(signin.this, UnityBridge.class);
+            startActivity(UnityBridge);
+            signin.this.finish();
         }
 
     }
-    // Given a URL, establishes an HttpUrlConnection and retrieves
-// the web page content as a InputStream, which it returns as
-// a string.
-    private String PostUrl(String myurl) throws IOException {
-        JSONObject JSON_DataToServer = new JSONObject();
-        try {
-            JSON_DataToServer.put("email", email);
-            if(FB_id!=null){
-                JSON_DataToServer.put("FB_id",FB_id);
-            }
-            outputBytes = JSON_DataToServer.toString().getBytes("UTF-8");
-        }catch (org.json.JSONException  e) {
-            Log.e("PostUrl",e.toString());
-        }
 
-        InputStream is ;
-        OutputStream os ;
-        // Only display the first 500 characters of the retrieved
-        // web page content.
-        int len = 500;
-        // Finish: 15/9/5 research about https!
-        URL url = new URL(myurl);
-        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-
-
-        conn.setReadTimeout(10000 /* milliseconds */);
-        conn.setConnectTimeout(15000 /* milliseconds */);
-        conn.setRequestMethod("POST");
-        conn.setDoInput(true);
-
-        conn.setRequestProperty("Content-Type", "application/json;charset=utf-8");
-        conn.setDoOutput(true); //Mean it need body so is post
-
-        conn.setFixedLengthStreamingMode(outputBytes.length);
-        conn.setSSLSocketFactory(SSL_context.getSocketFactory());
-        // Starts the query
-        os = conn.getOutputStream();
-        os.write(outputBytes);
-
-        is = conn.getInputStream();
-        //copyInputStreamToOutputStream(is, System.out);
-
-        conn.connect();
-        int response = conn.getResponseCode();
-        Log.d("HttpResponse", "The response is: " + response);
-
-        // Convert the InputStream into a string
-        String contentAsString = readIt(is, len);
-
-        // Makes sure that the InputStream is closed after the app is
-        // finished using it.
-        is.close();
-        os.close();
-        conn.disconnect();
-        return contentAsString;
-
-    }
-    // Reads an InputStream and converts it to a String.
-    public String readIt(InputStream stream, int len) throws IOException {
-        Reader reader = null;
-        reader = new InputStreamReader(stream, "UTF-8");
-        char[] buffer = new char[len];
-        reader.read(buffer);
-        return new String(buffer);
-    }
-
-    private void Certification() throws IOException {
-//        JSONObject JSON_Data = new JSONObject();
-//        try {
-//            JSON_Data.put("age", 11);
-//            JSON_Data.put("user_name", "jim");
-//            Log.d("JSON", JSON_Data.toString());
-//            outputBytes = JSON_Data.toString().getBytes("UTF-8");  //"{\"age\": 7.5}" work and JsonObject.toString work,too.
-//
-//        } catch (org.json.JSONException ex) {
-//            Log.e("JSON_test", ex.toString());
-//        }
-
-
-        CertificateFactory cf;
-        // Load CAs from an InputStream
-        // (could be from a resource or ByteArrayInputStream or ...)
-        try {
-            cf = CertificateFactory.getInstance("X.509");
-            // From https://www.washington.edu/itconnect/security/ca/load-der.crt
-//            InputStream caInput = new BufferedInputStream(new FileInputStream("load-der.crt"));
-            InputStream caInput = resources.openRawResource(R.raw.vinotech_us);
-
-
-            Certificate ca;
-            ca = cf.generateCertificate(caInput);
-            System.out.println("ca=" + ((X509Certificate) ca).getSubjectDN());
-
-
-            caInput.close();
-
-            // Create a KeyStore containing our trusted CAs
-            String keyStoreType = KeyStore.getDefaultType();
-            KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-            keyStore.load(null, null);
-            keyStore.setCertificateEntry("ca", ca);
-
-            // Create a TrustManager that trusts the CAs in our KeyStore
-            String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
-            tmf.init(keyStore);
-
-            // Create an SSLContext that uses our TrustManager
-            SSL_context = SSLContext.getInstance("TLS");
-            SSL_context.init(null, tmf.getTrustManagers(), null);
-
-
-        } catch (java.security.cert.CertificateException | java.security.KeyStoreException | java.security.NoSuchAlgorithmException |
-                java.security.KeyManagementException exception) {
-            Log.e("CertificateFactory", exception.toString());
-        }
-    }
 
 
 }

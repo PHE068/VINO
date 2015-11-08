@@ -18,6 +18,18 @@
                 "keyboard|keyboardHidden|screenLayout|screenSize|orientation">
 
         </activity>
+        <activity
+            android:name=".Url_Singleton"
+            android:configChanges=
+                "keyboard|keyboardHidden|screenLayout|screenSize|orientation">
+
+        </activity>
+        <activity
+            android:name=".UnityBridge"
+            android:configChanges=
+                "keyboard|keyboardHidden|screenLayout|screenSize|orientation">
+
+        </activity>
 
         <meta-data android:name="com.facebook.sdk.ApplicationId"  android:value="@string/facebook_app_id"/>
 

@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -17,6 +16,9 @@ import android.widget.Toast;
 public class choice extends Activity {
 
     ImageButton jawbone,googlefit;
+    SharedPreferences preferences;
+    SharedPreferences.Editor editor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,14 +27,19 @@ public class choice extends Activity {
         jawbone = (ImageButton)findViewById(R.id.jawbone);
         googlefit = (ImageButton)findViewById(R.id.google_fit);
 
+        preferences = PreferenceManager.getDefaultSharedPreferences(choice.this);
+        editor=preferences.edit();
+
         jawbone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //// TODO: 15/10/11  Save is google fit or Jawbone!
-                // TODO: 15/10/11 choice preferences  
+
+                editor.putString("device", "jawbone");
+                editor.apply();
+
                 Toast.makeText(choice.this,"jawbone Click",Toast.LENGTH_LONG).show();
-                Intent jawbone = new Intent(choice.this,Jawbone.class );
-                startActivity(jawbone);
+                Intent UnityBridge = new Intent(choice.this,UnityBridge.class );
+                startActivity(UnityBridge);
                 finish();
             }
         });
@@ -40,15 +47,16 @@ public class choice extends Activity {
         googlefit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                editor.putString("device", "googlefit");
+                editor.apply();
+
                 Toast.makeText(choice.this,"Googlefit Click",Toast.LENGTH_LONG).show();
+                Intent UnityBridge = new Intent(choice.this,UnityBridge.class );
+                startActivity(UnityBridge);
+                finish();
 
             }
         });
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(choice.this);
-
-        Log.e("test_pre", preferences.getString("Gmail", "null"));
-        Log.e("test_fb", preferences.getString("FB_mail", "null"));
 
 
     }
