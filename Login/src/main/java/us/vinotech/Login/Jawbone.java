@@ -168,6 +168,10 @@ public class Jawbone extends Activity{
     private Callback genericCallbackListener = new Callback<Object>() {
         @Override
         public void success(Object o, Response response) {
+            //Get today date!
+            SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyyMMdd");
+            String tdate = sDateFormat.format(new java.util.Date());
+
             JSONObject JSON_DataToServer = new JSONObject();
 
 
@@ -178,16 +182,24 @@ public class Jawbone extends Activity{
 
             Jawbone_Json_Data=o;
             Log.d("JSON", gson.toJson(Jawbone_Json_Data));
+
+            int date = Integer.parseInt(tdate);
+            int steps = 0;
+            double calories = 0.0;
+            int distance = 0;
+
             try {
                 JSONObject jawbone_Json = new JSONObject(gson.toJson(Jawbone_Json_Data));
-                JSONObject items = jawbone_Json.getJSONObject("data").getJSONArray("items").getJSONObject(0);
-                JSONObject details = items.getJSONObject("details");
-//                Log.e("Jawbone date",items.toString());
+                if(jawbone_Json.getJSONObject("data").getJSONArray("items").length()!=0) {
+                    JSONObject items = jawbone_Json.getJSONObject("data").getJSONArray("items").getJSONObject(0);
+                    JSONObject details = items.getJSONObject("details");
+//              Log.e("Jawbone date",items.toString());
 
-                int date = items.getInt("date");
-                int steps = details.getInt("steps");
-                double calories = details.getDouble("calories");
-                int distance = details.getInt("distance");
+                    date = items.getInt("date");
+                    steps = details.getInt("steps");
+                    calories = details.getDouble("calories");
+                    distance = details.getInt("distance");
+                }
 
                 Log.e("Jawbone date",Integer.toString(date));
                 Log.e("Jawbone steps", Integer.toString(steps));
@@ -277,6 +289,7 @@ public class Jawbone extends Activity{
         // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(String result) {
+            Log.e("test","test");
             Log.e("Result", result);
 
         }

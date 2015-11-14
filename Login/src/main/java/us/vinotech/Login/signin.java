@@ -304,7 +304,7 @@ public class signin extends Activity implements
 
         Log.e("test_pre", preferences.getString("email", "null"));
 
-        //Signin_Post_Data();
+        Signin_Post_Data();
 
         if(preferences.getString("Gmail",null)==null) {
             editor.putString("email", email);
