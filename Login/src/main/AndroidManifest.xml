@@ -19,7 +19,7 @@
 
         </activity>
         <activity
-            android:name=".Url_Singleton"
+            android:name="com.jawbone.upplatformsdk.oauth.OauthWebViewActivity"
             android:configChanges=
                 "keyboard|keyboardHidden|screenLayout|screenSize|orientation">
 

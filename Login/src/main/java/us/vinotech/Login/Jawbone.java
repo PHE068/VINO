@@ -18,7 +18,6 @@ import com.google.gson.Gson;
 import com.jawbone.upplatformsdk.api.ApiManager;
 import com.jawbone.upplatformsdk.api.response.OauthAccessTokenResponse;
 import com.jawbone.upplatformsdk.oauth.OauthUtils;
-import com.jawbone.upplatformsdk.oauth.OauthWebViewActivity;
 import com.jawbone.upplatformsdk.utils.UpPlatformSdkConstants;
 
 import org.json.JSONObject;
@@ -131,8 +130,11 @@ public class Jawbone extends Activity{
     private Intent getIntentForWebView() {
         Uri.Builder builder = OauthUtils.setOauthParameters(CLIENT_ID, OAUTH_CALLBACK_URL, authScope);
 
-        Intent intent = new Intent(OauthWebViewActivity.class.getName());
+        Intent intent = new Intent(Jawbone.this,com.jawbone.upplatformsdk.oauth.OauthWebViewActivity.class);
         intent.putExtra(UpPlatformSdkConstants.AUTH_URI, builder.build());
+
+//        Intent intent = new Intent(OauthWebViewActivity.class.getName());
+//        intent.putExtra(UpPlatformSdkConstants.AUTH_URI, builder.build());
         return intent;
     }
 
